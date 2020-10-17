@@ -6,6 +6,9 @@ library(tidyverse)
 get_top_headlines <- function(country = "", category = "", sources = "", 
                               q = "", pageSize = 0, page = 0, apiKey = "") {
   # check for invalid request parameters
+  if (apiKey == "") {
+    stop("An API key is required")
+  }
   if (!all(sapply(list(country, category, sources, q, apiKey), 
                  is.character))) {
     stop("country, category, sources, q, and apiKey must be character values")
@@ -55,6 +58,9 @@ get_top_headlines <- function(country = "", category = "", sources = "",
 
 get_sources <- function(category = "", country = "", apiKey = "") {
   # check for invalid request parameters
+  if (apiKey == "") {
+    stop("An API key is required")
+  }
   if (!all(sapply(list(category, country, apiKey), is.character))) {
     stop("category, country, and apiKey must be character values")
   }
@@ -88,5 +94,9 @@ get_sentim <- function(x) {
     encode = "json")
   
   # extract content from POST response
-  content(r, "text", encoding = "UTF-8")
+  content <- content(r, "text", encoding = "UTF-8")
+  
+  fromJSON(content) %>% 
+    flatten() %>% 
+    as_tibble()
 }
