@@ -2,7 +2,6 @@
 library(httr)
 library(jsonlite)
 library(tidyverse)
-library(purrr)
 
 get_top_headlines <- function(country = "", category = "", sources = "", 
                               q = "", pageSize = 0, page = 0, apiKey = "") {
@@ -54,9 +53,28 @@ get_top_headlines <- function(country = "", category = "", sources = "",
 }
 
 
-get_sources <- function(category, country, apiKey) {
+get_sources <- function(category = "", country = "", apiKey = "") {
+  # check for invalid request parameters
+  if (!all(sapply(list(category, country, apiKey), is.character))) {
+    stop("category, country, and apiKey must be character values")
+  }
+  
   base_url <- "https://newsapi.org/v2/sources"
+  param <- c("category=", "country=", "apiKey=")
+  vals <- c(category, country, apiKey)
   query <- "?language=en"
+  
+  #build query string
+  for (i in seq_along(param)) {
+    # check for nonempty parameters
+    if (vals[i] != "") {
+      addQuery <- str_c("&", param[i], vals[i])
+      query <- str_c(query, addQuery)
+    }
+  }
+
+  fromJSON(str_c(base_url, query)) %>% 
+    as_tibble()
 }
 
 
