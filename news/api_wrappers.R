@@ -1,8 +1,3 @@
-# packages
-library(httr)
-library(jsonlite)
-library(tidyverse)
-
 get_top_headlines <- function(country = "", category = "", sources = "", 
                               q = "", pageSize = 0, page = 0, apiKey = "") {
   # check for invalid request parameters
