@@ -111,7 +111,12 @@ get_sentim <- function(x) {
   # extract content from POST response
   content <- content(r, "text", encoding = "UTF-8")
   
-  fromJSON(content) %>% 
+  fromJSON(content) %>%
+    flatten_dfr() %>% 
     flatten() %>% 
-    as_tibble()
+    as_tibble() %>%
+    rename(overallPolarity = polarity,
+           overallType = type,
+           sentencePolarity = sentiment.polarity,
+           sentenceType = sentiment.type)
 }
