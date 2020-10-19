@@ -50,7 +50,7 @@ get_top_headlines <- function(country = "", category = "", sources = "",
     as_tibble() %>%
     flatten() %>%
     as_tibble() %>%
-    rename(author = articles.author,
+    dplyr::rename(author = articles.author,
            title = articles.title,
            description = articles.description,
            url = articles.url,
@@ -90,7 +90,7 @@ get_sources <- function(category = "", country = "", apiKey = "") {
     as_tibble() %>%
     flatten() %>%
     as_tibble() %>%
-    rename(sourceID = sources.id,
+    dplyr::rename(sourceID = sources.id,
            sourceName = sources.name,
            description = sources.description,
            url = sources.url,
@@ -116,7 +116,7 @@ get_sentim <- function(x) {
     flatten_dfr() %>% 
     flatten() %>% 
     as_tibble() %>%
-    rename(overallPolarity = polarity,
+    dplyr::rename(overallPolarity = polarity,
            overallType = type,
            sentencePolarity = sentiment.polarity,
            sentenceType = sentiment.type)
