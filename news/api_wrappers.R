@@ -8,7 +8,7 @@ get_top_headlines <- function(country = "", category = "", sources = "",
                  is.character))) {
     stop("country, category, sources, q, and apiKey must be character values")
   }
-  if (!all(sapply(list(pageSize, page), is.integer))) {
+  if (pageSize %% 1 != 0 | page %% 1 != 0) {
     stop("pageSize and page must be integer values")
   }
   if (country != "" & sources != "") {
@@ -46,8 +46,19 @@ get_top_headlines <- function(country = "", category = "", sources = "",
   }
   query <- URLencode(query)
   
-  fromJSON(str_c(base_url, query)) %>% 
-    as_tibble()
+  fromJSON(str_c(base_url, query)) %>%
+    as_tibble() %>%
+    flatten() %>%
+    as_tibble() %>%
+    rename(author = articles.author,
+           title = articles.title,
+           description = articles.description,
+           url = articles.url,
+           image = articles.urlToImage,
+           publishDate = articles.publishedAt,
+           content = articles.content,
+           sourceID = articles.source.id,
+           sourceName = articles.source.name)
 }
 
 
