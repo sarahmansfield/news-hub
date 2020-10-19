@@ -16,7 +16,7 @@ source("api_wrappers.R")
 # user interface
 ui <- fluidPage(
   shinyjs::useShinyjs(),
-  #js function to reset a button, variableName is the button name whose value we want to reset
+  #js function to reset a button
   tags$script("Shiny.addCustomMessageHandler('resetInputValue', function(variableName){
                 Shiny.onInputChange(variableName, null);
                 });
@@ -82,8 +82,7 @@ ui <- fluidPage(
                     )
                   ),
                   mainPanel(
-                    # output news articles
-                    # output data table
+                    # output news articles data table
                     DT::dataTableOutput(outputId = "toparticles")
                   )
                 )
@@ -125,6 +124,7 @@ server <- function(input, output, session) {
                  type  = "error")
     }
   })
+  # pull top headlines data
   data <- eventReactive(input$getdata, {
     if (input$country == "USA") {
       countryinput <- "us"
@@ -143,42 +143,93 @@ server <- function(input, output, session) {
                     Date = publishDate) %>%
       mutate(Date = ymd_hms(Date)) %>%
       arrange(desc(Date))
-    articles$Preview = shinyInput(actionButton, nrow(articles), 'button_', 
-                                  label = "Preview", 
-                                  onclick = 'Shiny.onInputChange(\"preview_button\", this.id)')
     articles$`Sentiment Analysis` = shinyInput(actionButton, nrow(articles), 'button_', 
                                                label = "Sentiment Analysis", 
                                                onclick = 'Shiny.onInputChange(\"sa_button\", this.id)')
     datatable(articles, escape = FALSE, rownames = FALSE)
   })
-  # popup preview box
-  observeEvent(input$preview_button, {
-    s <- as.numeric(strsplit(input$preview_button, "_")[[1]][2])
-    output$modal <- renderUI({
-      tagList(
-        bsModal(paste('model', s ,sep=''), "Preview", "preview_button", size = "small",
-                textAreaInput("text", label = h3("Enter Assessment") , value = "", width = "100%", height = "200px", resize = "none"),
-                actionButton("Enter", "Enter")
-        ))
-    })
-    toggleModal(session,paste('model', s ,sep=''), toggle = "Preview")
-    ##Reset the select_button
-    session$sendCustomMessage(type = 'resetInputValue', message =  "preview_button")
-  })    
-  # sentiment analysis
+  # build sentiment analysis popup window
   observeEvent(input$sa_button, {
+    if (length(input$toparticles_rows_selected) != 1) {
+      shinyalert(title = "ERROR",
+                 text  = "You must select exactly one row at a time in order to 
+                 conduct a sentiment analysis",
+                 type  = "error")
+    }
     s <- as.numeric(strsplit(input$sa_button, "_")[[1]][2])
     output$modal <- renderUI({
       tagList(
-        bsModal(paste('model', s ,sep=''), "Sentiment Analysis", "sa_button", size = "small",
-                textAreaInput("text", label = h3("Enter Assessment") , value = "", width = "100%", height = "200px", resize = "none"),
-                actionButton("Enter", "Enter")
-        ))
+        bsModal(paste('model', s ,sep=''), "Sentiment Analysis", "sa_button", size = "large",
+                sidebarLayout(
+                  # input options
+                  sidebarPanel(
+                    radioButtons(inputId = "SAtype", 
+                                 label = h5(strong("Conduct a sentiment analysis on this article's:")),
+                                 choices = c("Title", "Description")),
+                    # action button
+                    actionButton(inputId = "getSAdata",
+                                 label   = "Enter")
+                  ),
+                  # sentiment analysis output
+                  mainPanel(
+                    h5(strong("Title:")),
+                    textOutput(outputId = "SAtitle"),
+                    h5(strong("Description:")),
+                    textOutput(outputId = "SAdesc"),
+                    br(),
+                    h5(strong("Results:")),
+                    h5(textOutput(outputId = "sentimentanalysis"))
+                    )
+                  )
+                )
+        )
     })
-    toggleModal(session,paste('model', s ,sep=''), toggle = "Sentiment Analysis")
+    toggleModal(session,paste('model', s, sep=''), toggle = "Sentiment Analysis")
     ##Reset the select_button
     session$sendCustomMessage(type = 'resetInputValue', message =  "sa_button")
   })  
+  # pull sentiment analysis data
+  SAdata <- eventReactive(input$getSAdata, {
+    index <- input$toparticles_rows_selected #index of the current row
+    if (input$SAtype == "Title") {
+      x <- data() %>%
+        filter(row_number() == index) %>%
+        select(title) %>%
+        pull()
+    } else {
+      x <- data() %>%
+        filter(row_number() == index) %>%
+        select(description) %>%
+        pull()
+    }
+    get_sentim(x)
+  })
+  # article title (for sentiment analysis)
+  output$SAtitle <- renderText({
+    index <- input$toparticles_rows_selected #index of the current row
+    title <- data() %>%
+      filter(row_number() == index) %>%
+      select(title) %>%
+      pull()
+    title
+  })
+  # article description (for sentiment analysis)
+  output$SAdesc <- renderText({
+    index <- input$toparticles_rows_selected #index of the current row
+    description <- data() %>%
+      filter(row_number() == index) %>%
+      select(description) %>%
+      pull()
+    description
+  })
+  # output sentiment analysis results
+  output$sentimentanalysis <- renderText({
+    overallSA <- SAdata() %>%
+      slice(1) %>%
+      select(overallPolarity, overallType)
+    str_c("The text is ", overallSA$overallType, 
+          " and has an overall polarity of ", overallSA$overallPolarity, ".")
+  })
 }
 
 # run the application 
