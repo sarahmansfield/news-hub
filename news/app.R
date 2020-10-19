@@ -1,4 +1,5 @@
 library(tidyverse)
+library(lubridate)
 library(httr)
 library(jsonlite)
 library(shiny)
@@ -33,14 +34,9 @@ ui <- fluidPage(
         theme = "flat_red"
       ),
       # change header font
-      tags$head(tags$style(HTML('
-      .main-header .logo {
-        font-family: "Montserrat";
-        text-transform: uppercase;
-        font-weight: bold;
-        font-size: 24px;
-      }
-    '))),
+      tags$head(
+        tags$link(rel = "stylesheet", type = "text/css", href = "custom.css")
+      ),
       tabItems(
         # user guide tab
         tabItem(tabName = "userguide",
@@ -78,13 +74,9 @@ ui <- fluidPage(
                     )
                   ),
                   mainPanel(
-                    # inputs/outputs
-                    box(
-                      title = "Inputs", solidHeader = TRUE,
-                      "Box content here", br(), "More box content",
-                      sliderInput("slider", "Slider input:", 1, 100, 50),
-                      textInput("text", "Text input:")
-                    )
+                    # output news articles
+                    # output data table
+                    DT::dataTableOutput(outputId = "toparticles")
                   )
                 )
         ),
@@ -118,22 +110,23 @@ server <- function(input, output) {
                  type  = "error")
     }
   })
-  # pull data
-  observeEvent(input$getdata, {
+  data <- eventReactive(input$getdata, {
     if (input$country == "USA") {
-      data <- eventReactive(input$getdata, {
-        get_top_headlines(country = "us", category = input$category, 
-                          q = input$q, pageSize = input$pageSize,
-                          apiKey = input$apiKey)
-      })
+      countryinput <- "us"
     } else {
-      data <- eventReactive(input$getdata, {
-        get_top_headlines(category = input$category, q = input$q, 
-                          pageSize = input$pageSize, apiKey = input$apiKey)
-      })
+      countryinput <- ""
     }
+    get_top_headlines(country = countryinput, category = input$category, 
+                      q = input$q, pageSize = input$pageSize,
+                      apiKey = input$apiKey)
   })
-  
+  output$toparticles <- DT::renderDataTable({
+    articles <- data() %>%
+      dplyr::select(Title = title, Author = author, Source = sourceName, 
+                    Date = publishDate) %>%
+      arrange(desc(Date))
+    datatable(articles, escape = FALSE, rownames = FALSE)
+  })
     
 }
 

@@ -58,7 +58,8 @@ get_top_headlines <- function(country = "", category = "", sources = "",
            publishDate = articles.publishedAt,
            content = articles.content,
            sourceID = articles.source.id,
-           sourceName = articles.source.name)
+           sourceName = articles.source.name) %>%
+    mutate(publishDate = ymd_hms(publishDate))
 }
 
 
