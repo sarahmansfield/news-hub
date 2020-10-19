@@ -112,6 +112,14 @@ server <- function(input, output, session) {
     inputs
   }
   observeEvent(input$getdata, {
+    if (input$country == "Worldwide" & 
+        all(list(input$category, input$q) == "")) {
+      shinyalert(title = "ERROR",
+                 text  = "To search for worldwide news, at least one of the 
+                 following parameters must also be specified: 
+                 Category/Keywords",
+                 type  = "error")
+    }
     if (input$pageSize < 0 | input$pageSize > 100) {
       shinyalert(title = "ERROR",
                  text  = "The number of results to return must be 

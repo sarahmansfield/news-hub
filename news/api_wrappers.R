@@ -4,6 +4,12 @@ get_top_headlines <- function(country = "", category = "", sources = "",
   if (apiKey == "") {
     stop("An API key is required")
   }
+  if (country == "") {
+    if (all(list(category, sources, q) == "")) {
+      stop("If country is not specified, at least one other categorical
+           parameter must be specified")
+    }
+  }
   if (!all(sapply(list(country, category, sources, q, apiKey), 
                  is.character))) {
     stop("country, category, sources, q, and apiKey must be character values")
@@ -45,7 +51,7 @@ get_top_headlines <- function(country = "", category = "", sources = "",
     }
   }
   query <- URLencode(query)
-  
+
   fromJSON(str_c(base_url, query)) %>%
     as_tibble() %>%
     flatten() %>%
