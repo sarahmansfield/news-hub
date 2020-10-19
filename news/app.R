@@ -54,7 +54,7 @@ ui <- fluidPage(
         
         # top headlines tab
         tabItem(tabName = "topheadlines",
-                h2("Top headlines tab content"),
+                h2("Search For Top News Headlines"),
                 sidebarLayout(
                   sidebarPanel(h4(strong("Search options:")),
                     # inputs/outputs
@@ -90,7 +90,31 @@ ui <- fluidPage(
         
         # sources tab
         tabItem(tabName = "sources",
-                h2("Sources tab content")
+                h2("Search For News Sources"),
+                sidebarLayout(
+                  sidebarPanel(h4(strong("Search options:")),
+                               # inputs/outputs
+                               radioButtons(inputId = "country2",
+                                            label   = h5("Location:"),
+                                            choices = c("USA", "Worldwide")),
+                               selectInput(inputId = "category2",
+                                           label   = h5("Category:"),
+                                           choices = c("", "Business", "Entertainment",
+                                                       "General", "Health", "Science",
+                                                       "Sports", "Technology")),
+                               textInput(inputId = "apiKey2",
+                                         label   = h5("API Key:")),
+                               # action button
+                               div(align = "right",
+                                   actionButton(inputId = "getsources",
+                                                label   = strong("Search"))
+                               )
+                  ),
+                  mainPanel(
+                    # output news sources data table
+                    DT::dataTableOutput(outputId = "sources")
+                  )
+                )
         ),
         
         # links tab
@@ -237,6 +261,32 @@ server <- function(input, output, session) {
       select(overallPolarity, overallType)
     str_c("The text is ", overallSA$overallType, 
           " and has an overall polarity of ", overallSA$overallPolarity, ".")
+  })
+  
+  observeEvent(input$getsources, {
+    if (input$apiKey2 == "") {
+      shinyalert(title = "ERROR",
+                 text  = "You must enter in an API key",
+                 type  = "error")
+    }
+  })
+  # pull sources data
+  sourcesdata <- eventReactive(input$getsources, {
+    if (input$country2 == "USA") {
+      countryinput <- "us"
+    } else {
+      countryinput <- ""
+    }
+    get_sources(category = input$category2, country = countryinput, 
+                apiKey = input$apiKey2)
+  })
+  # output data table
+  output$sources <- DT::renderDataTable({
+    sources.dt <- sourcesdata() %>%
+      mutate(sourceName = str_c("<a href='", url, "'>", sourceName, "</a>")) %>%
+      dplyr::select(Source = sourceName, Description = description, 
+                    Category = category, Country = country)
+    datatable(sources.dt, escape = FALSE, rownames = FALSE)
   })
 }
 
