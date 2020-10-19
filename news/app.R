@@ -12,6 +12,7 @@ source("api_wrappers.R")
 
 # user interface
 ui <- fluidPage(
+  useShinyalert(),
   dashboardPage(
     dashboardHeader(title = "News Hub"),
     dashboardSidebar(
@@ -60,8 +61,6 @@ ui <- fluidPage(
                                 choices = c("", "Business", "Entertainment",
                                             "General", "Health", "Science",
                                             "Sports", "Technology")),
-                    textInput(inputId = "sources",
-                              label   = h5("Sources:")),
                     textInput(inputId = "q",
                               label   = h5("Keywords:")),
                     numericInput(inputId = "pageSize",
@@ -70,10 +69,6 @@ ui <- fluidPage(
                                  value = 0,
                                  min = 0,
                                  max = 100),
-                    numericInput(inputId = "page",
-                                 label = h5("Page number:"),
-                                 value = 0,
-                                 min = 0),
                     textInput(inputId = "apiKey",
                               label   = h5("API Key:")),
                     # action button
@@ -84,7 +79,12 @@ ui <- fluidPage(
                   ),
                   mainPanel(
                     # inputs/outputs
-                    
+                    box(
+                      title = "Inputs", solidHeader = TRUE,
+                      "Box content here", br(), "More box content",
+                      sliderInput("slider", "Slider input:", 1, 100, 50),
+                      textInput("text", "Text input:")
+                    )
                   )
                 )
         ),
@@ -105,8 +105,35 @@ ui <- fluidPage(
 
 # server function
 server <- function(input, output) {
-
-
+  observeEvent(input$getdata, {
+    if (input$pageSize < 0 | input$pageSize > 100) {
+      shinyalert(title = "ERROR",
+                 text  = "The number of results to return per page must be 
+                 between 0 and 100",
+                 type  = "error")
+    }
+    if (input$apiKey == "") {
+      shinyalert(title = "ERROR",
+                 text  = "You must enter in an API key",
+                 type  = "error")
+    }
+  })
+  # pull data
+  observeEvent(input$getdata, {
+    if (input$country == "USA") {
+      data <- eventReactive(input$getdata, {
+        get_top_headlines(country = "us", category = input$category, 
+                          q = input$q, pageSize = input$pageSize,
+                          apiKey = input$apiKey)
+      })
+    } else {
+      data <- eventReactive(input$getdata, {
+        get_top_headlines(category = input$category, q = input$q, 
+                          pageSize = input$pageSize, apiKey = input$apiKey)
+      })
+    }
+  })
+  
     
 }
 
