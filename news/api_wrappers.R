@@ -86,7 +86,16 @@ get_sources <- function(category = "", country = "", apiKey = "") {
   }
 
   fromJSON(str_c(base_url, query)) %>% 
-    as_tibble()
+    as_tibble() %>%
+    flatten() %>%
+    as_tibble() %>%
+    rename(sourceID = sources.id,
+           sourceName = sources.name,
+           description = sources.description,
+           url = sources.url,
+           category = sources.category,
+           language = sources.language,
+           country = sources.country)
 }
 
 
