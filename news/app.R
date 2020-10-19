@@ -3,6 +3,8 @@ library(lubridate)
 library(httr)
 library(jsonlite)
 library(shiny)
+library(shinyalert)
+library(shinyBS)
 library(shinydashboard)
 library(dashboardthemes)
 library(devtools)
@@ -13,6 +15,13 @@ source("api_wrappers.R")
 
 # user interface
 ui <- fluidPage(
+  shinyjs::useShinyjs(),
+  #js function to reset a button, variableName is the button name whose value we want to reset
+  tags$script("Shiny.addCustomMessageHandler('resetInputValue', function(variableName){
+                Shiny.onInputChange(variableName, null);
+                });
+                "),
+  uiOutput("modal"),
   useShinyalert(),
   dashboardPage(
     dashboardHeader(title = "News Hub"),
@@ -60,9 +69,8 @@ ui <- fluidPage(
                     textInput(inputId = "q",
                               label   = h5("Keywords:")),
                     numericInput(inputId = "pageSize",
-                                 label = h5("Number of results to 
-                                 return per page:"),
-                                 value = 0,
+                                 label = h5("Number of results to return:"),
+                                 value = 20,
                                  min = 0,
                                  max = 100),
                     textInput(inputId = "apiKey",
@@ -96,11 +104,18 @@ ui <- fluidPage(
 )
 
 # server function
-server <- function(input, output) {
+server <- function(input, output, session) {
+  shinyInput <- function(FUN, len, id, ...) {
+    inputs <- character(len)
+    for (i in seq_len(len)) {
+      inputs[i] <- as.character(FUN(paste0(id, i), ...))
+    }
+    inputs
+  }
   observeEvent(input$getdata, {
     if (input$pageSize < 0 | input$pageSize > 100) {
       shinyalert(title = "ERROR",
-                 text  = "The number of results to return per page must be 
+                 text  = "The number of results to return must be 
                  between 0 and 100",
                  type  = "error")
     }
@@ -120,14 +135,50 @@ server <- function(input, output) {
                       q = input$q, pageSize = input$pageSize,
                       apiKey = input$apiKey)
   })
+  # output data table
   output$toparticles <- DT::renderDataTable({
     articles <- data() %>%
+      mutate(title = str_c("<a href='", url, "'>", title, "</a>")) %>%
       dplyr::select(Title = title, Author = author, Source = sourceName, 
                     Date = publishDate) %>%
+      mutate(Date = ymd_hms(Date)) %>%
       arrange(desc(Date))
+    articles$Preview = shinyInput(actionButton, nrow(articles), 'button_', 
+                                  label = "Preview", 
+                                  onclick = 'Shiny.onInputChange(\"preview_button\", this.id)')
+    articles$`Sentiment Analysis` = shinyInput(actionButton, nrow(articles), 'button_', 
+                                               label = "Sentiment Analysis", 
+                                               onclick = 'Shiny.onInputChange(\"sa_button\", this.id)')
     datatable(articles, escape = FALSE, rownames = FALSE)
   })
-    
+  # popup preview box
+  observeEvent(input$preview_button, {
+    s <- as.numeric(strsplit(input$preview_button, "_")[[1]][2])
+    output$modal <- renderUI({
+      tagList(
+        bsModal(paste('model', s ,sep=''), "Preview", "preview_button", size = "small",
+                textAreaInput("text", label = h3("Enter Assessment") , value = "", width = "100%", height = "200px", resize = "none"),
+                actionButton("Enter", "Enter")
+        ))
+    })
+    toggleModal(session,paste('model', s ,sep=''), toggle = "Preview")
+    ##Reset the select_button
+    session$sendCustomMessage(type = 'resetInputValue', message =  "preview_button")
+  })    
+  # sentiment analysis
+  observeEvent(input$sa_button, {
+    s <- as.numeric(strsplit(input$sa_button, "_")[[1]][2])
+    output$modal <- renderUI({
+      tagList(
+        bsModal(paste('model', s ,sep=''), "Sentiment Analysis", "sa_button", size = "small",
+                textAreaInput("text", label = h3("Enter Assessment") , value = "", width = "100%", height = "200px", resize = "none"),
+                actionButton("Enter", "Enter")
+        ))
+    })
+    toggleModal(session,paste('model', s ,sep=''), toggle = "Sentiment Analysis")
+    ##Reset the select_button
+    session$sendCustomMessage(type = 'resetInputValue', message =  "sa_button")
+  })  
 }
 
 # run the application 
