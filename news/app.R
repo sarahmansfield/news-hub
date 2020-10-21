@@ -7,6 +7,7 @@ library(shinyalert)
 library(shinyBS)
 library(shinydashboard)
 library(dashboardthemes)
+library(DT)
 library(devtools)
 #install_github("nik01010/dashboardthemes")
 
@@ -200,14 +201,20 @@ server <- function(input, output, session) {
                                  choices = c("Title", "Description")),
                     # action button
                     actionButton(inputId = "getSAdata",
-                                 label   = "Enter")
+                                 label   = "Analyze")
                   ),
                   # sentiment analysis output
                   mainPanel(
-                    h5(strong("Title:")),
-                    textOutput(outputId = "SAtitle"),
-                    h5(strong("Description:")),
-                    textOutput(outputId = "SAdesc"),
+                    # conditional panel
+                    conditionalPanel(condition = "input.SAtype == 'Title'",
+                                     h5(strong("Title:")),
+                                     textOutput(outputId = "SAtitle")
+                    ),
+                    # conditional panel
+                    conditionalPanel(condition = "input.SAtype == 'Description'",
+                                     h5(strong("Description:")),
+                                     textOutput(outputId = "SAdesc")
+                    ),
                     br(),
                     h5(strong("Results:")),
                     h5(textOutput(outputId = "sentimentanalysis"))
@@ -217,7 +224,7 @@ server <- function(input, output, session) {
         )
     })
     toggleModal(session,paste('model', s, sep=''), toggle = "Sentiment Analysis")
-    ##Reset the select_button
+    ##Reset the sa_button
     session$sendCustomMessage(type = 'resetInputValue', message =  "sa_button")
   })  
   # pull sentiment analysis data
@@ -259,7 +266,7 @@ server <- function(input, output, session) {
     overallSA <- SAdata() %>%
       slice(1) %>%
       select(overallPolarity, overallType)
-    str_c("The text is ", overallSA$overallType, 
+    str_c("This text is ", overallSA$overallType, 
           " and has an overall polarity of ", overallSA$overallPolarity, ".")
   })
   
