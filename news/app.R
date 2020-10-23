@@ -179,7 +179,7 @@ server <- function(input, output, session) {
       articles$`Sentiment Analysis` = shinyInput(actionButton, nrow(articles), 'button_', 
                                                label = "Sentiment Analysis", 
                                                onclick = 'Shiny.onInputChange(\"sa_button\", this.id)')
-      datatable(articles, escape = FALSE, rownames = FALSE)
+      datatable(articles, escape = FALSE, rownames = FALSE, selection = 'single')
     } else {
       shinyalert(text  = "No results found. Please try another search.",
                  type  = "info")
@@ -189,12 +189,6 @@ server <- function(input, output, session) {
   
   # build sentiment analysis popup window
   observeEvent(input$sa_button, {
-    if (length(input$toparticles_rows_selected) != 1) {
-      shinyalert(title = "ERROR",
-                 text  = "You must select exactly one row at a time in order to 
-                 conduct a sentiment analysis",
-                 type  = "error")
-    }
     s <- as.numeric(strsplit(input$sa_button, "_")[[1]][2])
     output$modal <- renderUI({
       tagList(
@@ -300,7 +294,7 @@ server <- function(input, output, session) {
       mutate(sourceName = str_c("<a href='", url, "'>", sourceName, "</a>")) %>%
       dplyr::select(Source = sourceName, Description = description, 
                     Category = category, Country = country)
-      datatable(sources.dt, escape = FALSE, rownames = FALSE)
+      datatable(sources.dt, escape = FALSE, rownames = FALSE, selection = 'single')
     } else {
       shinyalert(text  = "No results found. Please try another search.",
                  type  = "info")
