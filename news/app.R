@@ -16,6 +16,10 @@ source("api_wrappers.R")
 
 # user interface
 ui <- fluidPage(
+  # change header font
+  tags$head(
+    tags$link(rel = "stylesheet", type = "text/css", href = "custom.css")
+  ),
   shinyjs::useShinyjs(),
   #js function to reset a button
   tags$script("Shiny.addCustomMessageHandler('resetInputValue', function(variableName){
@@ -42,10 +46,6 @@ ui <- fluidPage(
       ### apply theme
       shinyDashboardThemes(
         theme = "flat_red"
-      ),
-      # change header font
-      tags$head(
-        tags$link(rel = "stylesheet", type = "text/css", href = "custom.css")
       ),
       tabItems(
         # user guide tab
@@ -74,7 +74,8 @@ ui <- fluidPage(
                                  value = 20,
                                  min = 0,
                                  max = 100),
-                    textInput(inputId = "apiKey",
+                    textInput(inputId = "apiKey", 
+                              value = "c83d17a6e96f479ea20604bc27802a2d",
                               label   = h5("API Key:")),
                     # action button
                     div(align = "right",
@@ -141,14 +142,12 @@ server <- function(input, output, session) {
         all(list(input$category, input$q) == "")) {
       shinyalert(title = "ERROR",
                  text  = "To search for worldwide news, at least one of the 
-                 following parameters must also be specified: 
-                 Category/Keywords",
+                 following parameters must also be specified: Category/Keywords",
                  type  = "error")
     }
     if (input$pageSize < 0 | input$pageSize > 100) {
       shinyalert(title = "ERROR",
-                 text  = "The number of results to return must be 
-                 between 0 and 100",
+                 text  = "The number of results to return must be between 0 and 100",
                  type  = "error")
     }
     if (input$apiKey == "") {
@@ -170,17 +169,24 @@ server <- function(input, output, session) {
   })
   # output data table
   output$toparticles <- DT::renderDataTable({
-    articles <- data() %>%
+    if (nrow(data()) > 0) {
+      articles <- data() %>%
       mutate(title = str_c("<a href='", url, "'>", title, "</a>")) %>%
       dplyr::select(Title = title, Author = author, Source = sourceName, 
                     Date = publishDate) %>%
       mutate(Date = ymd_hms(Date)) %>%
       arrange(desc(Date))
-    articles$`Sentiment Analysis` = shinyInput(actionButton, nrow(articles), 'button_', 
+      articles$`Sentiment Analysis` = shinyInput(actionButton, nrow(articles), 'button_', 
                                                label = "Sentiment Analysis", 
                                                onclick = 'Shiny.onInputChange(\"sa_button\", this.id)')
-    datatable(articles, escape = FALSE, rownames = FALSE)
+      datatable(articles, escape = FALSE, rownames = FALSE)
+    } else {
+      shinyalert(text  = "No results found. Please try another search.",
+                 type  = "info")
+      datatable(data(), colnames = "No results found")
+    }
   })
+  
   # build sentiment analysis popup window
   observeEvent(input$sa_button, {
     if (length(input$toparticles_rows_selected) != 1) {
@@ -289,11 +295,17 @@ server <- function(input, output, session) {
   })
   # output data table
   output$sources <- DT::renderDataTable({
-    sources.dt <- sourcesdata() %>%
+    if (nrow(sourcesdata()) > 0) {
+      sources.dt <- sourcesdata() %>%
       mutate(sourceName = str_c("<a href='", url, "'>", sourceName, "</a>")) %>%
       dplyr::select(Source = sourceName, Description = description, 
                     Category = category, Country = country)
-    datatable(sources.dt, escape = FALSE, rownames = FALSE)
+      datatable(sources.dt, escape = FALSE, rownames = FALSE)
+    } else {
+      shinyalert(text  = "No results found. Please try another search.",
+                 type  = "info")
+      datatable(sourcesdata(), colnames = "No results found")
+    }
   })
 }
 

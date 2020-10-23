@@ -52,20 +52,26 @@ get_top_headlines <- function(country = "", category = "", sources = "",
   }
   query <- URLencode(query)
 
-  fromJSON(str_c(base_url, query)) %>%
+  news.df <- fromJSON(str_c(base_url, query)) %>%
     as_tibble() %>%
     flatten() %>%
-    as_tibble() %>%
-    dplyr::rename(author = articles.author,
-           title = articles.title,
-           description = articles.description,
-           url = articles.url,
-           image = articles.urlToImage,
-           publishDate = articles.publishedAt,
-           content = articles.content,
-           sourceID = articles.source.id,
-           sourceName = articles.source.name) %>%
-    mutate(publishDate = ymd_hms(publishDate))
+    as_tibble() 
+  
+  # check for nonempty dataframe before renaming variables
+  if (nrow(news.df) > 0) {
+    news.df <- news.df %>%
+      dplyr::rename(author = articles.author,
+                    title = articles.title,
+                    description = articles.description,
+                    url = articles.url,
+                    image = articles.urlToImage,
+                    publishDate = articles.publishedAt,
+                    content = articles.content,
+                    sourceID = articles.source.id,
+                    sourceName = articles.source.name) %>%
+      mutate(publishDate = ymd_hms(publishDate))
+  }
+  news.df
 }
 
 
@@ -92,10 +98,14 @@ get_sources <- function(category = "", country = "", apiKey = "") {
     }
   }
 
-  fromJSON(str_c(base_url, query)) %>% 
+  sources.df <- fromJSON(str_c(base_url, query)) %>% 
     as_tibble() %>%
     flatten() %>%
-    as_tibble() %>%
+    as_tibble() 
+  
+  # check for nonempty dataframe before renaming variables
+  if (nrow(sources.df) > 0) {
+    sources.df <- sources.df %>%
     dplyr::rename(sourceID = sources.id,
            sourceName = sources.name,
            description = sources.description,
@@ -103,6 +113,8 @@ get_sources <- function(category = "", country = "", apiKey = "") {
            category = sources.category,
            language = sources.language,
            country = sources.country)
+  }
+  sources.df
 }
 
 
