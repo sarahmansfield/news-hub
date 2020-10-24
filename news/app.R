@@ -1,5 +1,7 @@
 library(tidyverse)
 library(lubridate)
+library(cowplot)
+library(magick)
 library(httr)
 library(jsonlite)
 library(shiny)
@@ -18,7 +20,8 @@ source("api_wrappers.R")
 ui <- fluidPage(
   # change header font
   tags$head(
-    tags$link(rel = "stylesheet", type = "text/css", href = "custom.css")
+    tags$link(rel = "stylesheet", type = "text/css", href = "custom.css"),
+    tags$style("body {font-family: 'Montserrat';}")
   ),
   shinyjs::useShinyjs(),
   #js function to reset a button
@@ -26,8 +29,49 @@ ui <- fluidPage(
                 Shiny.onInputChange(variableName, null);
                 });
                 "),
-  uiOutput("modal"),
   useShinyalert(),
+  
+  # sentiment analysis modal window
+  bsModal(id = "saModal", 
+          title = "Article Preview", 
+          trigger = "sa_button", 
+          size = "large",
+          plotOutput(outputId = "articleimage"),
+          h5(strong("Content Preview:")),
+          textOutput(outputId = "articlecontent"),
+          br(),
+          sidebarLayout(
+            # input options
+            sidebarPanel(
+              radioButtons(inputId = "SAtype", 
+                           label = h5(strong("Conduct a sentiment analysis on this article's:")),
+                           choices = c("Title", "Description")),
+              # action button
+              actionButton(inputId = "getSAdata",
+                           label   = "Analyze"),
+              # reset/clear button
+              actionButton(inputId = "reset",
+                           label   = "Clear")
+            ),
+            # sentiment analysis output
+            mainPanel(
+              # conditional panel
+              conditionalPanel(condition = "input.SAtype == 'Title'",
+                               h5(strong("Title:")),
+                               textOutput(outputId = "articletitle")
+              ),
+              # conditional panel
+              conditionalPanel(condition = "input.SAtype == 'Description'",
+                               h5(strong("Description:")),
+                               textOutput(outputId = "articledesc")
+              ),
+              br(),
+              h5(strong("Results:")),
+              textOutput(outputId = "sentimentanalysis")
+            )
+          )
+  ),
+  
   dashboardPage(
     dashboardHeader(title = "News Hub"),
     dashboardSidebar(
@@ -105,6 +149,7 @@ ui <- fluidPage(
                                                        "General", "Health", "Science",
                                                        "Sports", "Technology")),
                                textInput(inputId = "apiKey2",
+                                         value = "c83d17a6e96f479ea20604bc27802a2d",
                                          label   = h5("API Key:")),
                                # action button
                                div(align = "right",
@@ -156,6 +201,7 @@ server <- function(input, output, session) {
                  type  = "error")
     }
   })
+  
   # pull top headlines data
   data <- eventReactive(input$getdata, {
     if (input$country == "USA") {
@@ -176,10 +222,11 @@ server <- function(input, output, session) {
                     Date = publishDate) %>%
       mutate(Date = ymd_hms(Date)) %>%
       arrange(desc(Date))
-      articles$`Sentiment Analysis` = shinyInput(actionButton, nrow(articles), 'button_', 
-                                               label = "Sentiment Analysis", 
+      articles$Preview = shinyInput(actionButton, nrow(articles), 'button_', 
+                                               label = "Preview", 
                                                onclick = 'Shiny.onInputChange(\"sa_button\", this.id)')
-      datatable(articles, escape = FALSE, rownames = FALSE, selection = 'single')
+      datatable(articles, escape = FALSE, rownames = FALSE, selection = 'single') %>% 
+        formatDate(4, "toLocaleString")
     } else {
       shinyalert(text  = "No results found. Please try another search.",
                  type  = "info")
@@ -187,87 +234,109 @@ server <- function(input, output, session) {
     }
   })
   
-  # build sentiment analysis popup window
-  observeEvent(input$sa_button, {
-    s <- as.numeric(strsplit(input$sa_button, "_")[[1]][2])
-    output$modal <- renderUI({
-      tagList(
-        bsModal(paste('model', s ,sep=''), "Sentiment Analysis", "sa_button", size = "large",
-                sidebarLayout(
-                  # input options
-                  sidebarPanel(
-                    radioButtons(inputId = "SAtype", 
-                                 label = h5(strong("Conduct a sentiment analysis on this article's:")),
-                                 choices = c("Title", "Description")),
-                    # action button
-                    actionButton(inputId = "getSAdata",
-                                 label   = "Analyze")
-                  ),
-                  # sentiment analysis output
-                  mainPanel(
-                    # conditional panel
-                    conditionalPanel(condition = "input.SAtype == 'Title'",
-                                     h5(strong("Title:")),
-                                     textOutput(outputId = "SAtitle")
-                    ),
-                    # conditional panel
-                    conditionalPanel(condition = "input.SAtype == 'Description'",
-                                     h5(strong("Description:")),
-                                     textOutput(outputId = "SAdesc")
-                    ),
-                    br(),
-                    h5(strong("Results:")),
-                    h5(textOutput(outputId = "sentimentanalysis"))
-                    )
-                  )
-                )
-        )
-    })
-    toggleModal(session,paste('model', s, sep=''), toggle = "Sentiment Analysis")
-    ##Reset the sa_button
-    session$sendCustomMessage(type = 'resetInputValue', message =  "sa_button")
-  })  
-  # pull sentiment analysis data
-  SAdata <- eventReactive(input$getSAdata, {
+  # article title
+  output$articletitle <- renderText({
     index <- input$toparticles_rows_selected #index of the current row
-    if (input$SAtype == "Title") {
-      x <- data() %>%
+    if (length(index) > 0) {
+      title <- data() %>%
         filter(row_number() == index) %>%
         select(title) %>%
         pull()
+      title
     } else {
-      x <- data() %>%
+      stop("A row must be selected in order to generate data on this article. Please go back and ensure that a row in the data table is selected when the button is clicked.")
+    }
+    
+  })
+  # article description
+  output$articledesc <- renderText({
+    index <- input$toparticles_rows_selected #index of the current row
+    if (length(index) > 0) {
+      description <- data() %>%
         filter(row_number() == index) %>%
         select(description) %>%
         pull()
+      description
+    } else {
+      stop("A row must be selected in order to generate data on this article. Please go back and ensure that a row in the data table is selected when the button is clicked.")
     }
-    get_sentim(x)
+    
   })
-  # article title (for sentiment analysis)
-  output$SAtitle <- renderText({
+  # article image
+  output$articleimage <- renderPlot({
     index <- input$toparticles_rows_selected #index of the current row
-    title <- data() %>%
-      filter(row_number() == index) %>%
-      select(title) %>%
-      pull()
-    title
+    if (length(index) > 0) {
+      imageurl <- data() %>%
+        filter(row_number() == index) %>%
+        select(image) %>%
+        pull()
+      ggdraw() + draw_image(imageurl)
+    } else {
+      stop("A row must be selected in order to generate data on this article. Please go back and ensure that a row in the data table is selected when the button is clicked.")
+    }
+    
   })
-  # article description (for sentiment analysis)
-  output$SAdesc <- renderText({
+  # article content
+  output$articlecontent <- renderText({
     index <- input$toparticles_rows_selected #index of the current row
-    description <- data() %>%
-      filter(row_number() == index) %>%
-      select(description) %>%
-      pull()
-    description
+    if (length(index) > 0) {
+      content <- data() %>%
+        filter(row_number() == index) %>%
+        select(content) %>%
+        pull()
+      if (is.na(content)) {
+        content <- "No preview available for this article's contents"
+      } else {
+        # remove the [+ __ chars] portion of content
+        content <- substr(content, 1, nchar(content) - 14)
+      }
+      content
+    } else {
+      stop("A row must be selected in order to generate data on this article. Please go back and ensure that a row in the data table is selected when the button is clicked.")
+    }
+  })
+  
+  observeEvent(input$sa_button, {
+    toggleModal(session, "saModal", toggle = "toggle")
+    ##Reset the sa_button
+    session$sendCustomMessage(type = 'resetInputValue', message = "sa_button")
+  })
+  # pull sentiment analysis data
+  SAdata <- eventReactive(input$getSAdata, {
+    index <- input$toparticles_rows_selected #index of the current row
+    if (length(index) > 0) {
+      if (input$SAtype == "Title") {
+        x <- data() %>%
+        filter(row_number() == index) %>%
+        select(title) %>%
+        pull()
+      } else {
+        x <- data() %>%
+        filter(row_number() == index) %>%
+        select(description) %>%
+        pull()
+        }
+      get_sentim(x)
+    } else {
+      stop("A row must be selected in order to generate data on this article. Please go back and ensure that a row in the data table is selected when the button is clicked.")
+    }
+    
   })
   # output sentiment analysis results
-  output$sentimentanalysis <- renderText({
-    overallSA <- SAdata() %>%
-      slice(1) %>%
-      select(overallPolarity, overallType)
-    str_c("This text is ", overallSA$overallType, 
-          " and has an overall polarity of ", overallSA$overallPolarity, ".")
+  observeEvent(input$getSAdata, {
+    output$sentimentanalysis <- renderText({
+      overallSA <- SAdata() %>%
+        slice(1) %>%
+        select(overallPolarity, overallType)
+      str_c("This text is ", overallSA$overallType, 
+            " and has an overall polarity of ", overallSA$overallPolarity, ".")
+    })
+  })
+  # clears the output when reset button is clicked
+  observeEvent(input$reset, {
+    output$sentimentanalysis <- renderText({
+      
+    })
   })
   
   observeEvent(input$getsources, {
