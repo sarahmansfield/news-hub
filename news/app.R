@@ -308,7 +308,7 @@ server <- function(input, output, session) {
         pull()
       title
     } else {
-      stop("A row must be selected in order to generate data on this article. Please go back and ensure that a row in the data table is selected when the button is clicked.")
+      print("A row must be selected in order to generate data on this article. Please go back and ensure that a row in the data table is selected when the button is clicked.")
     }
     
   })
@@ -322,7 +322,7 @@ server <- function(input, output, session) {
         pull()
       description
     } else {
-      stop("A row must be selected in order to generate data on this article. Please go back and ensure that a row in the data table is selected when the button is clicked.")
+      print("A row must be selected in order to generate data on this article. Please go back and ensure that a row in the data table is selected when the button is clicked.")
     }
     
   })
@@ -330,14 +330,15 @@ server <- function(input, output, session) {
   output$articleimage <- renderPlot({
     index <- input$toparticles_rows_selected #index of the current row
     if (is.null(index)) {
-      stop("A row must be selected in order to generate data on this article. Please go back and ensure that a row in the data table is selected when the button is clicked.")
-    }
-    imageurl <- data() %>%
-      filter(row_number() == index) %>%
-      select(image) %>%
-      pull()
-    if (!is.na(imageurl)) {
-      ggdraw() + draw_image(imageurl)
+      print("A row must be selected in order to generate data on this article. Please go back and ensure that a row in the data table is selected when the button is clicked.")
+    } else {
+      imageurl <- data() %>%
+        filter(row_number() == index) %>%
+        select(image) %>%
+        pull()
+      if (!is.na(imageurl)) {
+        ggdraw() + draw_image(imageurl)
+      }
     }
   })
   # article content
@@ -356,7 +357,7 @@ server <- function(input, output, session) {
       }
       content
     } else {
-      stop("A row must be selected in order to generate data on this article. Please go back and ensure that a row in the data table is selected when the button is clicked.")
+      print("A row must be selected in order to generate data on this article. Please go back and ensure that a row in the data table is selected when the button is clicked.")
     }
   })
   
@@ -382,7 +383,7 @@ server <- function(input, output, session) {
         }
       get_sentim(x)
     } else {
-      stop("A row must be selected in order to generate data on this article. Please go back and ensure that a row in the data table is selected when the button is clicked.")
+      print("A row must be selected in order to generate data on this article. Please go back and ensure that a row in the data table is selected when the button is clicked.")
     }
     
   })
