@@ -20,8 +20,7 @@ source("api_wrappers.R")
 ui <- fluidPage(
   # change header font
   tags$head(
-    tags$link(rel = "stylesheet", type = "text/css", href = "custom.css"),
-    tags$style("body {font-family: 'Montserrat';}")
+    tags$link(rel = "stylesheet", type = "text/css", href = "custom.css")
   ),
   shinyjs::useShinyjs(),
   #js function to reset a button
@@ -81,9 +80,7 @@ ui <- fluidPage(
         menuItem("Top Headlines", tabName = "topheadlines", 
                  icon = icon("search")),
         menuItem("Sources", tabName = "sources", 
-                 icon = icon("newspaper")),
-        menuItem("Links", tabName = "links", 
-                 icon = icon("link"))
+                 icon = icon("newspaper"))
       )
     ),
     dashboardBody(
@@ -94,12 +91,74 @@ ui <- fluidPage(
       tabItems(
         # user guide tab
         tabItem(tabName = "userguide",
-                h2("User guide tab content")
+                fluidRow(
+                  column(12, align = "center",
+                         h1(strong("Welcome to the News Hub Dashboard!")),
+                         br(),
+                         h4("This interactive dashboard provides the latest and breaking news headlines 
+                         across the United States, as well as worldwide."),
+                         tags$div(
+                           "Created using the ",
+                           tags$a(href="https://newsapi.org/", 
+                                  "News API")
+                           ),
+                         br(),
+                         hr(),
+                         h2(strong("How to use the dashboard:"))
+                         )
+                ),
+                fluidRow(
+                  column(6, align = "center",
+                         h2("TOP HEADLINES")),
+                  column(6, align = "center",
+                         h2("SOURCES"))
+                ),
+                fluidRow(
+                  column(6,
+                         box(
+                           title = icon("search"), 
+                           width = NULL, solidHeader = TRUE, status = "danger",
+                           tags$p("Navigate to the Top Headlines tab to search for breaking news headlines", 
+                                  style = "font-size: 150%;"),
+                           tags$ul(
+                             tags$li("Specify search options to find news articles that fit certain criteria"), 
+                             tags$li("Most parameters are optional and some have already been populated with default values 
+                                     that can be changed"), 
+                             tags$li("An API Key is REQUIRED in order to search for articles"),
+                             tags$li("Press the 'Search' button to search for articles after inputting your criteria"),
+                             tags$li("All matching news articles will be outputted in a table that contains information
+                                about the article's title, author, source, date published, a link to the article, 
+                                as well as a preview button"),
+                             tags$li("The preview button opens a pop-up window that includes an image, a snippet of the article's
+                                contents (if available), as well as a sentiment analysis feature that allows the user to perform a 
+                                sentiment analysis on either the article's title or description"),
+                             style = "font-size: 130%;"
+                           )
+                         )),
+                  column(6,
+                         box(
+                           title = icon("newspaper"), 
+                           width = NULL, solidHeader = TRUE, status = "danger",
+                           tags$p("Navigate to the Sources tab to search for news sources", 
+                                  style = "font-size: 150%;"),
+                           tags$ul(
+                             tags$li("Specify search options to find news sources that fit certain criteria"), 
+                             tags$li("An API Key is REQUIRED in order to search for sources, and the category
+                                     parameter is optional"), 
+                             tags$li("Press the 'Search' button to search for sources after inputting your criteria"),
+                             tags$li("All matching news sources will be outputted in a table that contains information
+                             about the source's name, description, category, country of origin, as well as a link
+                                     to the news source."),
+                             style = "font-size: 130%;"
+                           )
+                         ))
+                )
         ),
         
         # top headlines tab
         tabItem(tabName = "topheadlines",
-                h2("Search For Top News Headlines"),
+                h2("Search for Top News Headlines"),
+                hr(),
                 sidebarLayout(
                   sidebarPanel(h4(strong("Search options:")),
                     # inputs/outputs
@@ -136,7 +195,8 @@ ui <- fluidPage(
         
         # sources tab
         tabItem(tabName = "sources",
-                h2("Search For News Sources"),
+                h2("Search for News Sources"),
+                hr(),
                 sidebarLayout(
                   sidebarPanel(h4(strong("Search options:")),
                                # inputs/outputs
@@ -162,15 +222,19 @@ ui <- fluidPage(
                     DT::dataTableOutput(outputId = "sources")
                   )
                 )
-        ),
-        
-        # links tab
-        tabItem(tabName = "links",
-                h2("Links tab content")
         )
       )
     )
-  )
+  ),
+  tags$footer("Created by Sarah Mansfield", align = "center", style = "
+              position:absolute;
+              bottom:0;
+              width:100%;
+              height:40px;   /* Height of the footer */
+              color: white;
+              padding: 10px;
+              background-color: #2d3b42;
+              z-index: 1000;")
 )
 
 # server function
@@ -265,16 +329,16 @@ server <- function(input, output, session) {
   # article image
   output$articleimage <- renderPlot({
     index <- input$toparticles_rows_selected #index of the current row
-    if (length(index) > 0) {
-      imageurl <- data() %>%
-        filter(row_number() == index) %>%
-        select(image) %>%
-        pull()
-      ggdraw() + draw_image(imageurl)
-    } else {
+    if (is.null(index)) {
       stop("A row must be selected in order to generate data on this article. Please go back and ensure that a row in the data table is selected when the button is clicked.")
     }
-    
+    imageurl <- data() %>%
+      filter(row_number() == index) %>%
+      select(image) %>%
+      pull()
+    if (!is.na(imageurl)) {
+      ggdraw() + draw_image(imageurl)
+    }
   })
   # article content
   output$articlecontent <- renderText({
