@@ -11,7 +11,7 @@ library(shinydashboard)
 library(dashboardthemes)
 library(DT)
 library(devtools)
-#install_github("nik01010/dashboardthemes")
+install_github("nik01010/dashboardthemes")
 
 # load api helper functions
 source("api_wrappers.R")
@@ -110,7 +110,9 @@ ui <- fluidPage(
                          across the United States, as well as worldwide."),
                          tags$div(
                            "Created using the ",
-                           tags$a(href="https://newsapi.org/", "News API")
+                           tags$a(href="https://newsapi.org/", "News API"),
+                           "and the ",
+                           tags$a(href="https://sentim-api.herokuapp.com", "SENTIM-API")
                          ),
                          hr(),
                          h3(strong("How to use the dashboard:"))
