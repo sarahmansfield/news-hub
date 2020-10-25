@@ -80,46 +80,54 @@ ui <- fluidPage(
         menuItem("Top Headlines", tabName = "topheadlines", 
                  icon = icon("search")),
         menuItem("Sources", tabName = "sources", 
-                 icon = icon("newspaper"))
-      )
+                 icon = icon("newspaper")),
+        menuItem("Source Code", icon = icon("file-code-o"), 
+                 href = "https://github.com/sta523-fa20/exam2-sarahmansfield"),
+        menuItem("Contact Me", icon = icon("envelope"), 
+                 href = "mailto:sarah.b.mansfield@duke.edu")
+      ),
+      tags$footer(tags$p("Created by Sarah Mansfield"), 
+      align = "center", style = "
+      position:fixed;
+      bottom:0;
+      height:40px;
+      color: white;
+      padding: 10px;
+      background-color: #cf395c;
+      ")
     ),
     dashboardBody(
       ### apply theme
-      shinyDashboardThemes(
-        theme = "flat_red"
-      ),
+      shinyDashboardThemes(theme = "flat_red"),
       tabItems(
         # user guide tab
         tabItem(tabName = "userguide",
                 fluidRow(
                   column(12, align = "center",
-                         h1(strong("Welcome to the News Hub Dashboard!")),
+                         h2(strong("Welcome to the News Hub Dashboard!")),
                          br(),
-                         h4("This interactive dashboard provides the latest and breaking news headlines 
+                         h5("This interactive dashboard provides the latest and breaking news headlines 
                          across the United States, as well as worldwide."),
                          tags$div(
                            "Created using the ",
-                           tags$a(href="https://newsapi.org/", 
-                                  "News API")
-                           ),
-                         br(),
+                           tags$a(href="https://newsapi.org/", "News API")
+                         ),
                          hr(),
-                         h2(strong("How to use the dashboard:"))
+                         h3(strong("How to use the dashboard:"))
                          )
                 ),
                 fluidRow(
                   column(6, align = "center",
-                         h2("TOP HEADLINES")),
+                         h4(strong("TOP HEADLINES"))),
                   column(6, align = "center",
-                         h2("SOURCES"))
+                         h4(strong("SOURCES")))
                 ),
                 fluidRow(
                   column(6,
                          box(
                            title = icon("search"), 
                            width = NULL, solidHeader = TRUE, status = "danger",
-                           tags$p("Navigate to the Top Headlines tab to search for breaking news headlines", 
-                                  style = "font-size: 150%;"),
+                           tags$p("Navigate to the Top Headlines tab to search for breaking news headlines"),
                            tags$ul(
                              tags$li("Specify search options to find news articles that fit certain criteria"), 
                              tags$li("Most parameters are optional and some have already been populated with default values 
@@ -131,16 +139,14 @@ ui <- fluidPage(
                                 as well as a preview button"),
                              tags$li("The preview button opens a pop-up window that includes an image, a snippet of the article's
                                 contents (if available), as well as a sentiment analysis feature that allows the user to perform a 
-                                sentiment analysis on either the article's title or description"),
-                             style = "font-size: 130%;"
+                                sentiment analysis on either the article's title or description")
                            )
                          )),
                   column(6,
                          box(
                            title = icon("newspaper"), 
                            width = NULL, solidHeader = TRUE, status = "danger",
-                           tags$p("Navigate to the Sources tab to search for news sources", 
-                                  style = "font-size: 150%;"),
+                           tags$p("Navigate to the Sources tab to search for news sources"),
                            tags$ul(
                              tags$li("Specify search options to find news sources that fit certain criteria"), 
                              tags$li("An API Key is REQUIRED in order to search for sources, and the category
@@ -148,38 +154,38 @@ ui <- fluidPage(
                              tags$li("Press the 'Search' button to search for sources after inputting your criteria"),
                              tags$li("All matching news sources will be outputted in a table that contains information
                              about the source's name, description, category, country of origin, as well as a link
-                                     to the news source."),
-                             style = "font-size: 130%;"
-                           )
-                         ))
+                                     to the news source"))
+                         )
+                  )
+                  
                 )
         ),
         
         # top headlines tab
         tabItem(tabName = "topheadlines",
-                h2("Search for Top News Headlines"),
+                h4(strong("Search for Top News Headlines")),
                 hr(),
                 sidebarLayout(
-                  sidebarPanel(h4(strong("Search options:")),
+                  sidebarPanel(
                     # inputs/outputs
                     radioButtons(inputId = "country",
-                              label   = h5("Location:"),
+                              label   = "Location:",
                               choices = c("USA", "Worldwide")),
                     selectInput(inputId = "category",
-                                label   = h5("Category:"),
+                                label   = "Category:",
                                 choices = c("", "Business", "Entertainment",
                                             "General", "Health", "Science",
                                             "Sports", "Technology")),
                     textInput(inputId = "q",
-                              label   = h5("Keywords:")),
+                              label   = "Keywords:"),
                     numericInput(inputId = "pageSize",
-                                 label = h5("Number of results to return:"),
+                                 label = "Number of results to return:",
                                  value = 20,
                                  min = 0,
                                  max = 100),
-                    textInput(inputId = "apiKey", 
+                    textInput(inputId = "apiKey",
                               value = "c83d17a6e96f479ea20604bc27802a2d",
-                              label   = h5("API Key:")),
+                              label   = "API Key:"),
                     # action button
                     div(align = "right",
                         actionButton(inputId = "getdata",
@@ -195,22 +201,22 @@ ui <- fluidPage(
         
         # sources tab
         tabItem(tabName = "sources",
-                h2("Search for News Sources"),
+                h4(strong("Search for News Sources")),
                 hr(),
                 sidebarLayout(
-                  sidebarPanel(h4(strong("Search options:")),
+                  sidebarPanel(
                                # inputs/outputs
                                radioButtons(inputId = "country2",
-                                            label   = h5("Location:"),
+                                            label   = "Location:",
                                             choices = c("USA", "Worldwide")),
                                selectInput(inputId = "category2",
-                                           label   = h5("Category:"),
+                                           label   = "Category:",
                                            choices = c("", "Business", "Entertainment",
                                                        "General", "Health", "Science",
                                                        "Sports", "Technology")),
                                textInput(inputId = "apiKey2",
                                          value = "c83d17a6e96f479ea20604bc27802a2d",
-                                         label   = h5("API Key:")),
+                                         label   = "API Key:"),
                                # action button
                                div(align = "right",
                                    actionButton(inputId = "getsources",
@@ -225,16 +231,7 @@ ui <- fluidPage(
         )
       )
     )
-  ),
-  tags$footer("Created by Sarah Mansfield", align = "center", style = "
-              position:fixed;
-              bottom:0;
-              width:100%;
-              height:40px;   /* Height of the footer */
-              color: white;
-              padding: 10px;
-              background-color: #2d3b42;
-              z-index: 1000;")
+  )
 )
 
 # server function
