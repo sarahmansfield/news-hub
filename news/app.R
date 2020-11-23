@@ -10,8 +10,6 @@ library(shinyBS)
 library(shinydashboard)
 library(dashboardthemes)
 library(DT)
-library(devtools)
-install_github("nik01010/dashboardthemes")
 
 # load api helper functions
 source("api_wrappers.R")
@@ -82,7 +80,7 @@ ui <- fluidPage(
         menuItem("Sources", tabName = "sources", 
                  icon = icon("newspaper")),
         menuItem("Source Code", icon = icon("file-code-o"), 
-                 href = "https://github.com/sta523-fa20/exam2-sarahmansfield"),
+                 href = "https://github.com/sarahmansfield/news-hub"),
         menuItem("Contact Me", icon = icon("envelope"), 
                  href = "mailto:sarah.b.mansfield@duke.edu")
       ),
